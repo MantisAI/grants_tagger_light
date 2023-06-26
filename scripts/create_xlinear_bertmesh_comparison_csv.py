@@ -13,11 +13,33 @@ random.seed(42)
 torch.manual_seed(42)
 
 
-def load_mesh_terms_from_file(mesh_terms_list_path):
+def load_mesh_terms_from_file(mesh_terms_list_path: str):
     with open(mesh_terms_list_path, "r") as f:
         mesh_terms = f.readlines()
     mesh_terms = [term.strip() for term in mesh_terms]
     return mesh_terms
+
+
+def load_mesh_tree_node_letters(mesh_codes_list_path: str):
+    """
+    Example file:
+    Information Sources: L
+    Phenomena and Processes: G
+    Geographicals: Z
+    Diseases: C
+
+    This functions extracts the letters from the file. The letters
+    represent a top level descriptor from the MeSH tree ontology.
+    Below is an example MeSH term for the letter "C", i.e. diseases:
+
+    Tree num : C10.597.606.762.175
+    Code : D066190
+    Name : Allesthesia
+    """
+    with open(mesh_codes_list_path, "r") as f:
+        mesh_codes = f.readlines()
+    mesh_codes = [code.strip().split(": ")[1] for code in mesh_codes]
+    return mesh_codes
 
 
 def _extract_data(mesh_elem):
@@ -31,7 +53,7 @@ def _extract_data(mesh_elem):
     return tree_number, code, name
 
 
-def find_subnames(mesh_metadata_path: str, mesh_terms_list_path: str):
+def find_subnames_from_terms(mesh_metadata_path: str, mesh_terms_list_path: str):
     """
     Given a path to a file containing a list of MeSH terms and a path to a file
     containing MeSH metadata, returns a list of all MeSH terms that are subnames
@@ -53,10 +75,13 @@ def find_subnames(mesh_metadata_path: str, mesh_terms_list_path: str):
     # Do 1st pass to get all their codes
     top_level_tree_numbers = []
     pbar = tqdm(root)
-    pbar.set_description("Finding top level tree numbers")
+    pbar.set_description("Finding top level tree numbers from terms")
+
+    found_terms = []
+
     for mesh_elem in pbar:
         try:
-            tree_number, _, name = _extract_data(mesh_elem)
+            tree_number, code, name = _extract_data(mesh_elem)
         except IndexError:
             continue
 
@@ -64,6 +89,54 @@ def find_subnames(mesh_metadata_path: str, mesh_terms_list_path: str):
             continue
         else:
             top_level_tree_numbers.append(tree_number)
+            found_terms.append(name)
+
+    assert len(found_terms) == len(
+        mesh_terms
+    ), "Not all terms were found in MeSH tree. Terms that were not found : {}".format(
+        set(mesh_terms) - set(found_terms)
+    )
+
+    # Do 2nd pass to collect all names that are in the same tree as the ones we found
+    all_subnames = []
+    pbar = tqdm(root)
+    pbar.set_description("Finding subnames")
+    for mesh_elem in pbar:
+        try:
+            curr_tree_number, _, name = _extract_data(mesh_elem)
+        except IndexError:
+            continue
+
+        for top_level_tree_number in top_level_tree_numbers:
+            if curr_tree_number.startswith(top_level_tree_number):
+                all_subnames.append(name)
+                break
+
+    return all_subnames
+
+
+def find_subnames_from_tree_nodes(mesh_metadata_path: str, mesh_tree_nodes_path: str):
+    mesh_tree = ET.parse(mesh_metadata_path)
+    tree_node_letters = load_mesh_tree_node_letters(mesh_tree_nodes_path)
+    root = mesh_tree.getroot()
+
+    # Do 1st pass to get all their codes
+    top_level_tree_numbers = []
+    pbar = tqdm(root)
+    pbar.set_description("Finding top level tree numbers from tree nodes")
+
+    found_terms = []
+    for mesh_elem in pbar:
+        try:
+            tree_number, _, name = _extract_data(mesh_elem)
+        except IndexError:
+            continue
+
+        for tree_node_letter in tree_node_letters:
+            if tree_number.startswith(tree_node_letter):
+                top_level_tree_numbers.append(tree_number)
+                found_terms.append(name)
+                break
 
     # Do 2nd pass to collect all names that are in the same tree as the ones we found
     all_subnames = []
@@ -89,6 +162,7 @@ def create_comparison_csv(
     num_samples_per_cat: int,
     mesh_metadata_path: str,
     mesh_terms_list_path: str,
+    mesh_tree_letters_list_path: str,
     pre_annotate_bertmesh: bool,
     bertmesh_path: str,
     bertmesh_thresh: float,
@@ -98,7 +172,14 @@ def create_comparison_csv(
     xlinear_thresh: float,
     output_path: str,
 ):
-    subnames = find_subnames(mesh_metadata_path, mesh_terms_list_path)
+    subnames_from_terms = find_subnames_from_terms(
+        mesh_metadata_path, mesh_terms_list_path
+    )
+    subnames_from_tree_letters = find_subnames_from_tree_nodes(
+        mesh_metadata_path, mesh_tree_letters_list_path
+    )
+
+    subnames = set(subnames_from_terms).union(set(subnames_from_tree_letters))
 
     parquet_files = wr.s3.list_objects(s3_url)
     random.shuffle(parquet_files)
@@ -169,6 +250,7 @@ if __name__ == "__main__":
     parser.add_argument("--num-samples-per-cat", type=int, default=10)
     parser.add_argument("--mesh-metadata-path", type=str)
     parser.add_argument("--mesh-terms-list-path", type=str)
+    parser.add_argument("--mesh-tree-letters-list-path", type=str)
     parser.add_argument("--pre-annotate-bertmesh", action="store_true")
     parser.add_argument(
         "--bertmesh-path", type=str, default="Wellcome/WellcomeBertMesh"
@@ -188,6 +270,7 @@ if __name__ == "__main__":
         num_samples_per_cat=args.num_samples_per_cat,
         mesh_metadata_path=args.mesh_metadata_path,
         mesh_terms_list_path=args.mesh_terms_list_path,
+        mesh_tree_letters_list_path=args.mesh_tree_letters_list_path,
         pre_annotate_bertmesh=args.pre_annotate_bertmesh,
         bertmesh_path=args.bertmesh_path,
         bertmesh_thresh=args.bertmesh_thresh,
