@@ -239,6 +239,26 @@ def create_comparison_csv(
             )
         ]
 
+    # Create row which contains the common predictions of both models
+    # Also add columns with xlinear only and bertmesh only
+    if pre_annotate_bertmesh and pre_annotate_xlinear:
+        grants_sample["common_terms"] = grants_sample.apply(
+            lambda x: list(
+                set(x["bertmesh_terms"]).intersection(set(x["xlinear_terms"]))
+            ),
+            axis=1,
+        )
+
+        grants_sample["bertmesh_only_terms"] = grants_sample.apply(
+            lambda x: list(set(x["bertmesh_terms"]) - set(x["xlinear_terms"])),
+            axis=1,
+        )
+
+        grants_sample["xlinear_only_terms"] = grants_sample.apply(
+            lambda x: list(set(x["xlinear_terms"]) - set(x["bertmesh_terms"])),
+            axis=1,
+        )
+
     # Output df to csv
     grants_sample.to_csv(output_path, index=False)
 
