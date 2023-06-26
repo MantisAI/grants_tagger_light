@@ -1,0 +1,9 @@
+schema: '2.0'
+stages:
+  generate:
+    cmd: python ../../scripts/create_grants_sample.py --s3-url s3://datalabs-data/dimensions/grants/grants
+      --num-parquet-files-to-consider 10 --num-samples-per-cat 10 --pre-annotate True
+    outs:
+    - path: grants_sample.jsonl
+      md5: a9e5e23004a082ef5717a52079ca4d84
+      size: 426592
