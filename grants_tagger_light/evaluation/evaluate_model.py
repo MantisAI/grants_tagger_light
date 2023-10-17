@@ -39,6 +39,7 @@ def evaluate_model(
 
     label_binarizer = MultiLabelBinarizer()
     label_binarizer.fit([list(model.id2label.keys())])
+    model.label2id = {value: key for key, value in model.id2label.items()}
 
     pipe = pipeline(
         "grants-tagging",
@@ -53,11 +54,11 @@ def evaluate_model(
         )
         _, X_test, _, Y_test = load_train_test_data(data_path, label_binarizer)
     else:
-        X_test, Y_test, _ = load_data(data_path, label_binarizer)
+        X_test, Y_test, _ = load_data(data_path, label_binarizer, model_label2id=model.label2id)
 
     logging.info('data loaded')
-    X_test = X_test[:10]
-    Y_test = Y_test[:10]
+    X_test = X_test[:100]
+    Y_test = Y_test[:100]
 
     top_10_index = np.argsort(np.sum(Y_test, axis=0))[::-1][:10]
     print(top_10_index)
@@ -73,12 +74,13 @@ def evaluate_model(
         print(f'argmax: {argmax}')
         print(argmax, output[0][argmax])
     Y_pred_proba = pipe(X_test, return_labels=False)
-    Y_pred_proba = [torch.sigmoid(proba) for proba in Y_pred_proba]
-    #print('loss')
-    #print(F.binary_cross_entropy_with_logits(Y_pred_proba, torch.tensor(Y_test).float()))
+    #Y_pred_proba = [torch.sigmoid(proba) for proba in Y_pred_proba]
+    
     #Y_pred_proba = [torch.sigmoid(proba) for proba in Y_pred_proba]
     print(Y_pred_proba)
     Y_pred_proba = torch.vstack(Y_pred_proba)
+    print('loss')
+    print(F.binary_cross_entropy_with_logits(torch.tensor(Y_pred_proba), torch.tensor(Y_test).float()))
     print(Y_pred_proba.shape, Y_test.shape)
     Y_pred_proba = sp.csr_matrix(Y_pred_proba)
 
