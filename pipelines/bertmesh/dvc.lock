@@ -16,8 +16,8 @@ stages:
       nfiles: 36
     outs:
     - path: ../../bertmesh_outs/pipeline_test/best
-      md5: c72c56172cdb94425a9bbadfdca2d285.dir
-      size: 22036393505
+      md5: ff955acba3369d507ffeef363d43232d.dir
+      size: 22036399263
       nfiles: 47
   preprocess:
     cmd:
