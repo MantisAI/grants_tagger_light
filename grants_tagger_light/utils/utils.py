@@ -40,7 +40,7 @@ def yield_tags(data_path, label_binarizer=None):
                 yield item["tags"]
 
 
-def load_data(data_path, label_binarizer=None, X_format="List"):
+def load_data(data_path, label_binarizer=None, X_format="List", model_label2id=None):
     """Load data from the dataset."""
     print("Loading data...")
 
@@ -59,6 +59,10 @@ def load_data(data_path, label_binarizer=None, X_format="List"):
     train_dset, val_dset = dset["train"], dset["test"]
     texts = val_dset['abstractText']
     tags = val_dset['label_ids']
+
+    if model_label2id:
+        tags = [[model_label2id.get(id2label.get(str(x), None), None) for x in val] for val in tags]
+
     if label_binarizer:
         tags = label_binarizer.transform(tags)
     meta = val_dset['meshMajor']
