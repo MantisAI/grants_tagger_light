@@ -30,7 +30,7 @@ class BertMeshTrainingArguments(TrainingArguments):
         default=8
     )  # set to 256 in grants-tagger repo
     per_device_eval_batch_size: int = field(default=8)
-    gradient_accumulation_steps: int = field(default=2)
+    gradient_accumulation_steps: int = field(default=1)
     group_by_length: bool = field(default=False)  # TODO test this
 
     # Learning rate & num train epochs are taken from grants_tagger repo
