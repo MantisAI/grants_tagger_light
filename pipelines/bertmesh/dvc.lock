@@ -7,7 +7,7 @@ stages:
       0.1 --hidden_size 1024 --warmup_steps 5000 --max_grad_norm 2.0 --scheduler_type
       cosine_hard_restart --weight_decay 0.2 --correct_bias True --threshold 0.25
       --prune_labels_in_evaluation True --hidden_dropout_prob 0.2 --attention_probs_dropout_prob
-      0.2 --fp16 --torch_compile --evaluation_strategy epoch --eval_accumulation_steps
+      0.2 --fp16 --torch_compile --evaluation_strategy steps --eval_steps 100 --eval_accumulation_steps
       20 --save_strategy epoch
     deps:
     - path: ../../preprocessed_results

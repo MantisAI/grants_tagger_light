@@ -40,7 +40,8 @@ stages:
           --torch_compile
           --evaluation_strategy epoch
           --eval_accumulation_steps 20
-          --save_strategy epoch
+          --save_strategy steps
+          --eval_steps 100
         deps:
             - ${preprocessing_output}
         outs:
