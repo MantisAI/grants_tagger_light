@@ -10,7 +10,7 @@ stages:
     preprocess:
       cmd:
         - mkdir -p ${output_dir}
-        - grants-tagger preprocess mesh ${data_path} ${preprocessing_output} "" --test-size 25000 --train-years 2016,2017,2018,2019 --test-years 2020,2021
+        - grants-tagger preprocess mesh ${data_path} ${preprocessing_output} "" --max_samples 2000 --test-size 1000 --train-years 2016,2017,2018,2019 --test-years 2020,2021
       outs:
         - ${preprocessing_output}
 
@@ -38,10 +38,10 @@ stages:
           --attention_probs_dropout_prob 0.2
           --fp16
           --torch_compile
-          --evaluation_strategy epoch
+          --evaluation_strategy steps
+          --eval_steps 100
           --eval_accumulation_steps 20
           --save_strategy steps
-          --eval_steps 100
         deps:
             - ${preprocessing_output}
         outs:
