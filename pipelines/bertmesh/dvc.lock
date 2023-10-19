@@ -2,7 +2,7 @@ schema: '2.0'
 stages:
   train:
     cmd: grants-tagger train bertmesh "" ../../preprocessed_results --output_dir ../../bertmesh_outs/pipeline_test/best
-      --per_device_train_batch_size 8 --per_device_eval_batch_size 1 --multilabel_attention
+      --per_device_train_batch_size 8 --per_device_eval_batch_size 1 --gradient_accumulation_step 2 --multilabel_attention
       True --freeze_backbone unfreeze --num_train_epochs 7 --learning_rate 5e-5 --dropout
       0.1 --hidden_size 1024 --warmup_steps 5000 --max_grad_norm 2.0 --scheduler_type
       cosine_hard_restart --weight_decay 0.2 --correct_bias True --threshold 0.25
