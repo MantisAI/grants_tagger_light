@@ -80,7 +80,7 @@ def train_bertmesh(
             train_years=train_years,
             test_years=test_years,
         )
-
+    
     train_dset, val_dset = dset["train"], dset["test"]
 
     metric_labels = []
@@ -161,8 +161,13 @@ def train_bertmesh(
         # This is a batch, so it's an array (rows) of array (labels)
         # Array of arrays with probas [[5.4e-5 1.3e-3...] [5.4e-5 1.3e-3...] ... ]
         y_pred = prediction.predictions
+        logging.info("predictions output")
+        logging.info(y_pred)
+        logging.info("predictions made")
         # Transformed to 0-1 if bigger than threshold [[0 1 0...] [0 0 1...] ... ]
         y_pred = np.int64(y_pred > training_args.threshold)
+        logging.info("predictions made")
+        logging.info(np.sum(y_pred))
 
         # Array of arrays with 0/1 [[0 0 1 ...] [0 1 0 ...] ... ]
         y_true = prediction.label_ids

@@ -62,6 +62,7 @@ def preprocess_mesh(
     train_years: list = None,
     test_years: list = None,
 ):
+    logger.info(f"Filtering examples to {max_samples}")
     if max_samples != -1:
         logger.info(f"Filtering examples to {max_samples}")
         data_path = create_sample_file(data_path, max_samples)
