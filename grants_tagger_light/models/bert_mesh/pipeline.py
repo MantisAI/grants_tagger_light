@@ -33,6 +33,7 @@ class BertMeshPipeline(Pipeline):
         return_labels: bool,
         threshold: float = 0.5,
     ):
+        print('I AM IN THE POSTPROCESS MY GOD')
         if return_labels:
             outs = [
                 [
