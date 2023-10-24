@@ -62,7 +62,7 @@ def preprocess_mesh(
     train_years: list = None,
     test_years: list = None,
 ):
-    logger.info(f"Filtering examples to {max_samples}")
+
     if max_samples != -1:
         logger.info(f"Filtering examples to {max_samples}")
         data_path = create_sample_file(data_path, max_samples)
@@ -71,7 +71,7 @@ def preprocess_mesh(
         label2id = None
         id2label = None
         tokenizer = AutoTokenizer.from_pretrained(
-            "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract"
+            "Wellcome/WellcomeBertMesh"#"microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract"
         )
     else:
         # Load the model to get its label2id
@@ -107,7 +107,7 @@ def preprocess_mesh(
         dset = dset.filter(
             lambda x: any(np.isin(tags, x["meshMajor"])), num_proc=num_proc
         )
-
+        
     # Remove unused columns to save space & time
     dset = dset.remove_columns(["journal", "pmid", "title"])
 
