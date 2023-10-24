@@ -1,23 +1,32 @@
 schema: '2.0'
 stages:
   train:
-    cmd:
-    - mkdir -p ../../bertmesh_outs/pipeline_test/best
-    - python ../../grants_tagger_light/training/train.py \ --model_key "" \ --data_path
-      ../../data/raw/retagging/allMeSH_2021.2016-2021.jsonl \ --per_device_train_batch_size
-      16 \ --per_device_eval_batch_size 1 \ --multilabel_attention True \ --freeze_backbone
-      unfreeze \ --num_train_epochs 7 \ --learning_rate 5e-5 \ --dropout 0.1 \ --hidden_size
-      1024 \ --warmup_steps 5000 \ --max_grad_norm 2.0 \ --scheduler_type cosine_hard_restart
-      \ --weight_decay 0.2 \ --correct_bias True \ --threshold 0.25 \ --prune_labels_in_evaluation
-      True \ --hidden_dropout_prob 0.2 \ --attention_probs_dropout_prob 0.2 \ --fp16
-      \ --torch_compile \ --evaluation_strategy epoch \ --eval_accumulation_steps
-      20 \ --save_strategy epoch
+    cmd: grants-tagger train bertmesh "" ../../preprocessed_results --output_dir ../../bertmesh_outs/pipeline_test/best
+      --per_device_train_batch_size 8 --per_device_eval_batch_size 1 --gradient_accumulation_step
+      2 --multilabel_attention True --freeze_backbone unfreeze --num_train_epochs
+      7 --learning_rate 5e-5 --dropout 0.1 --hidden_size 1024 --warmup_steps 5000
+      --max_grad_norm 2.0 --scheduler_type cosine_hard_restart --weight_decay 0.05
+      --correct_bias True --threshold 0.25 --hidden_dropout_prob
+      0.2 --attention_probs_dropout_prob 0.2 --fp16 --torch_compile --evaluation_strategy
+      steps --eval_steps 1000 --save_steps 50000 --eval_accumulation_steps 20 --save_strategy steps
     deps:
-    - path: ../../data/raw/retagging/allMeSH_2021.2016-2021.jsonl
-      md5: 5011944fabc5ac7d6cfb2b20c17ae4d4
-      size: 5544198887
+    - path: ../../preprocessed_results
+      md5: 950f8a067946a307a0795b6b21632f74.dir
+      size: 12530173568
+      nfiles: 36
     outs:
     - path: ../../bertmesh_outs/pipeline_test/best
-      md5: d751713988987e9331980363e24189ce.dir
-      size: 0
-      nfiles: 0
+      md5: ff955acba3369d507ffeef363d43232d.dir
+      size: 22036399263
+      nfiles: 47
+  preprocess:
+    cmd:
+    - mkdir -p ../../bertmesh_outs/pipeline_test/best
+    - grants-tagger preprocess mesh ../../data/raw/retagging/allMeSH_2021.2016-2021.jsonl
+      ../../preprocessed_results "" --test-size 25000 --train-years 2016,2017,2018,2019
+      --test-years 2020,2021
+    outs:
+    - path: ../../preprocessed_results
+      md5: 708a0f3fdaf59275cbb471cc9b4217ac.dir
+      size: 12530173568
+      nfiles: 36

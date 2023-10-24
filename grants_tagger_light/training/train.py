@@ -25,6 +25,7 @@ from loguru import logger
 from pprint import pformat
 import typer
 import numpy as np
+
 import os
 import transformers
 import json
@@ -80,7 +81,7 @@ def train_bertmesh(
             train_years=train_years,
             test_years=test_years,
         )
-
+    
     train_dset, val_dset = dset["train"], dset["test"]
 
     metric_labels = []
@@ -160,14 +161,34 @@ def train_bertmesh(
     def sklearn_metrics(prediction: EvalPrediction):
         # This is a batch, so it's an array (rows) of array (labels)
         # Array of arrays with probas [[5.4e-5 1.3e-3...] [5.4e-5 1.3e-3...] ... ]
-        y_pred = prediction.predictions
+        def sigmoid(x):
+            return 1 / (1 + np.exp(-x))
+        y_pred = np.array([sigmoid(y) for y in prediction.predictions])
+        top_indexes = np.argsort(np.sum(prediction.label_ids, axis=0))[::-1][:5]
+        #print(y_pred.shape)
+        #print('mean probabilties and standard deviations for 10 first examples')
+        #print(np.mean(y_pred[:11, :],axis=1), np.std(y_pred[:11, :], axis=1))
+        #print('ids')
+        #print(np.where(prediction.label_ids[10, :] == 1)[0])
+        #print('Probabilities for true value')
+        #print(y_pred[10, np.where(prediction.label_ids[10, :] == 1)[0]])
+        #print('Higher predictions')
+        #print(np.sort(y_pred[10, :])[::-1])
         # Transformed to 0-1 if bigger than threshold [[0 1 0...] [0 0 1...] ... ]
         y_pred = np.int64(y_pred > training_args.threshold)
+        #print('Number of predictions and outputs')
+        #print(sum(y_pred[10, :]), y_pred[10, :])
+        logger.info("predictions made")
+        logger.info(np.sum(y_pred))
 
         # Array of arrays with 0/1 [[0 0 1 ...] [0 1 0 ...] ... ]
         y_true = prediction.label_ids
 
         # report = classification_report(y_pred, y_true, output_dict=True)
+
+        reports = {index: {'pred_max': np.max(y_pred[[0, 1000, 2500, 10000], :], axis=1)}
+                    for index in top_indexes}
+        logger.info("highest pred calculated")
 
         if training_args.prune_labels_in_evaluation:
             mask = np.zeros(y_pred.shape, dtype=bool)
@@ -178,10 +199,14 @@ def train_bertmesh(
         else:
             filtered_y_pred = y_pred
             filtered_y_true = y_true
+        
+        logger.info("pruned labels in evaluation")
 
         report = classification_report(
-            filtered_y_pred, filtered_y_true, output_dict=True
+            filtered_y_true, filtered_y_pred, output_dict=True, 
+                                       zero_division=0.0,
         )
+        logger.info("classification report computed")
 
         metric_dict = {
             "micro_avg": report["micro avg"],
@@ -189,6 +214,11 @@ def train_bertmesh(
             "weighted_avg": report["weighted avg"],
             "samples_avg": report["samples avg"],
         }
+
+        metric_dict = {**metric_dict, 
+                       **{f'index_{index}': reports.get(index)
+                        for index in top_indexes}}
+
 
         return metric_dict
 
